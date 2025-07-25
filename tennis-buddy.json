@@ -1,0 +1,307 @@
+{
+  "name": "tennis-buddy",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "1215004513707229204",
+          "mode": "list",
+          "cachedResultName": "ATP100",
+          "cachedResultUrl": "https://discord.com/channels/1215004513707229204"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1398311466859237406",
+          "mode": "list",
+          "cachedResultName": "general",
+          "cachedResultUrl": "https://discord.com/channels/1215004513707229204/1398311466859237406"
+        },
+        "content": "Here is a list of stuff.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -16
+      ],
+      "id": "ccee912a-a4d8-4b6b-8a0e-1d4c91c7f482",
+      "name": "Send a message",
+      "webhookId": "c8064a64-81fc-4fe9-b5d2-65a27fdc4747",
+      "executeOnce": true,
+      "credentials": {
+        "discordBotApi": {
+          "id": "VHg4sOhzgyvt3nPL",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0ac50170-6475-469a-9c6a-a3104684dcd7",
+              "leftValue": "={{ $json.content }}",
+              "rightValue": "/available",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        -240
+      ],
+      "id": "d14e4dcd-1dc8-4dc1-9570-a5c529825492",
+      "name": "Check for user prompt"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "guildId": {
+          "__rl": true,
+          "value": "1215004513707229204",
+          "mode": "list",
+          "cachedResultName": "ATP100",
+          "cachedResultUrl": "https://discord.com/channels/1215004513707229204"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1398311466859237406",
+          "mode": "list",
+          "cachedResultName": "general",
+          "cachedResultUrl": "https://discord.com/channels/1215004513707229204/1398311466859237406"
+        },
+        "limit": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        224,
+        -240
+      ],
+      "id": "f03f117a-6600-48e3-ae7f-d58dda92da9e",
+      "name": "Get last message",
+      "webhookId": "2e593e18-42cf-4408-b155-8df8c11c7cf6",
+      "credentials": {
+        "discordBotApi": {
+          "id": "VHg4sOhzgyvt3nPL",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -240
+      ],
+      "id": "921848b1-0b12-4836-8f4b-54f61384db27",
+      "name": "Run every 5 seconds"
+    },
+    {
+      "parameters": {
+        "url": "https://live.evobeauty.ro/online/sudarena/?data=2025-07-28",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        -240
+      ],
+      "id": "61a2db47-fbda-44bd-8f40-76f32ffddfc7",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "timeSlots",
+              "cssSelector": "table tr:nth-child(n+3)",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        -240
+      ],
+      "id": "435d508e-7574-4600-9078-e35fa01a4185",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = [];\nconst timeSlotsArray = $input.item.json.timeSlots; // This is the array you provided\n\nconst targetHours = [\n    \"19:00\",\n    \"19:30\",\n    \"20:00\",\n    \"20:30\",\n    \"21:00\",\n    \"21:30\",\n    \"22:00\"\n];\n\nfor (const slotString of timeSlotsArray) {\n    // Extract the hour (first 5 characters)\n    const hour = slotString.substring(0, 5);\n\n    // Check if the hour is one of our target hours\n    if (targetHours.includes(hour)) {\n        // Extract the concatenated statuses (everything after the hour)\n        const rawStatuses = slotString.substring(5);\n\n        // Split the statuses. \"Ocupat\" and \"Liber\" are 6 and 5 characters long respectively.\n        // We need to carefully split them. A simple regex can do this.\n        const statusArray = [];\n        let currentPosition = 0;\n        while (currentPosition < rawStatuses.length) {\n            if (rawStatuses.substring(currentPosition, currentPosition + 6) === \"Ocupat\") {\n                statusArray.push(\"Ocupat\");\n                currentPosition += 6;\n            } else if (rawStatuses.substring(currentPosition, currentPosition + 5) === \"Liber\") {\n                statusArray.push(\"Liber\");\n                currentPosition += 5;\n            } else {\n                // This should ideally not happen if the data is consistent\n                console.warn(`Unexpected string found at position ${currentPosition}: ${rawStatuses.substring(currentPosition, currentPosition + 10)}`);\n                break; // Exit to prevent infinite loop\n            }\n        }\n\n        // Extract the statuses for courts 4, 5, 6, 7, 8\n        // Based on your input:\n        // The first 3 are Football fields (indices 0, 1, 2)\n        // The next 5 are Tennis fields (indices 3, 4, 5, 6, 7)\n        // The rest are other fields you don't care about.\n        const desiredCourtStatuses = statusArray.slice(3, 8); // slice(startIndex, endIndex_exclusive)\n\n        output.push({\n            time: hour,\n            tennisCourtAvailability: desiredCourtStatuses\n        });\n    }\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        -240
+      ],
+      "id": "17d711c3-8874-41e8-80aa-dfe586d5d8b4",
+      "name": "Code",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const outputMessages = [];\n// Assuming the input data looks exactly like the example provided\n// It's an array of objects, each with 'time' and 'tennisCourtAvailability'\nconst dataSlots = $input.item.json; \n\n// Helper function to add minutes to a time string (HH:mm)\nfunction addMinutesToTime(startTime, minutesToAdd) {\n    const [hours, minutes] = startTime.split(':').map(Number);\n    const date = new Date(); // Dummy date, only time matters\n    date.setHours(hours);\n    date.setMinutes(minutes + minutesToAdd);\n    date.setSeconds(0);\n    date.setMilliseconds(0);\n\n    const endHours = String(date.getHours()).padStart(2, '0');\n    const endMinutes = String(date.getMinutes()).padStart(2, '0');\n    return `${endHours}:${endMinutes}`;\n}\n\n// Map the index in 'tennisCourtAvailability' array to actual court numbers\n// The user specified: first Liber is Court 5, next 6, then 7, 9, 10.\n// So: [0]=Court 5, [1]=Court 6, [2]=Court 7, [3]=Court 9, [4]=Court 10\nconst courtMap = {\n    0: \"Terenul 5\",\n    1: \"Terenul 6\",\n    2: \"Terenul 7\",\n    3: \"Terenul 9\",\n    4: \"Terenul 10\"\n};\n\n// Set to keep track of reported longer availability blocks to avoid duplicates\nconst reportedSlots = new Set(); // Stores strings like \"Terenul 5_19:00\"\n\nfor (let i = 0; i < dataSlots.length; i++) {\n    const currentSlot = dataSlots[i];\n    const currentTime = currentSlot.time; // e.g., \"19:00\"\n\n    // Iterate through each court's availability for the current time slot\n    for (let courtIndex = 0; courtIndex < currentSlot.tennisCourtAvailability.length; courtIndex++) {\n        const courtDisplayName = courtMap[courtIndex];\n        const currentStatus = currentSlot.tennisCourtAvailability[courtIndex];\n\n        // Unique identifier for this specific start time and court\n        const slotIdentifier = `${courtDisplayName}_${currentTime}`;\n\n        // If this exact start time and court has already been reported as part of a longer block, skip it\n        if (reportedSlots.has(slotIdentifier)) {\n            continue;\n        }\n\n        if (currentStatus === \"Liber\") {\n            let durationMinutes = 0;\n            let foundLongerBlock = false;\n\n            // --- Check for 2-hour availability (4 consecutive 30-min slots) ---\n            // Need current slot + 3 future slots\n            if (i + 3 < dataSlots.length) {\n                const next30 = dataSlots[i + 1];\n                const next60 = dataSlots[i + 2];\n                const next90 = dataSlots[i + 3];\n\n                if (next30.tennisCourtAvailability[courtIndex] === \"Liber\" &&\n                    next60.tennisCourtAvailability[courtIndex] === \"Liber\" &&\n                    next90.tennisCourtAvailability[courtIndex] === \"Liber\") {\n                    \n                    durationMinutes = 120; // 2 hours\n                    foundLongerBlock = true;\n\n                    // Mark all covered starting times as reported to prevent duplicates\n                    reportedSlots.add(`${courtDisplayName}_${addMinutesToTime(currentTime, 30)}`);\n                    reportedSlots.add(`${courtDisplayName}_${addMinutesToTime(currentTime, 60)}`);\n                    reportedSlots.add(`${courtDisplayName}_${addMinutesToTime(currentTime, 90)}`);\n                }\n            }\n\n            // --- If not 2 hours, check for 1.5-hour availability (3 consecutive 30-min slots) ---\n            // Need current slot + 2 future slots\n            if (!foundLongerBlock && i + 2 < dataSlots.length) {\n                const next30 = dataSlots[i + 1];\n                const next60 = dataSlots[i + 2];\n\n                if (next30.tennisCourtAvailability[courtIndex] === \"Liber\" &&\n                    next60.tennisCourtAvailability[courtIndex] === \"Liber\") {\n                    \n                    durationMinutes = 90; // 1.5 hours\n                    foundLongerBlock = true;\n\n                    // Mark all covered starting times as reported\n                    reportedSlots.add(`${courtDisplayName}_${addMinutesToTime(currentTime, 30)}`);\n                    reportedSlots.add(`${courtDisplayName}_${addMinutesToTime(currentTime, 60)}`);\n                }\n            }\n\n            // --- If a longer block (1.5 hours or 2 hours) was found, create the message ---\n            if (foundLongerBlock) {\n                const endTime = addMinutesToTime(currentTime, durationMinutes);\n                outputMessages.push({\n                    message: `${courtDisplayName}: ${currentTime}-${endTime}`\n                });\n            }\n        }\n    }\n}\n\nreturn outputMessages;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        -240
+      ],
+      "id": "85a28b5f-97cf-41ec-867b-a6761209ea2d",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        672,
+        -240
+      ],
+      "id": "fb4dfb91-b916-4b5e-8493-a7a6de6bcf8d",
+      "name": "Date & Time"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Send a message": {
+      "main": [
+        []
+      ]
+    },
+    "Check for user prompt": {
+      "main": [
+        [
+          {
+            "node": "Date & Time",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Get last message": {
+      "main": [
+        [
+          {
+            "node": "Check for user prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run every 5 seconds": {
+      "main": [
+        [
+          {
+            "node": "Get last message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "576bfef4-1764-462b-b50c-3e276fdd7ecf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "af93df03e3a0e57850faa7153730b015a1c5773f2e12a9bf09f82ea6769047a9"
+  },
+  "id": "75giOndJfsUxuGxu",
+  "tags": []
+}
